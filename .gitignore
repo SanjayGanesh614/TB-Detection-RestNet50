@@ -33,3 +33,5 @@ logs/
 
 # Project specific
 model/OGbest_model.keras
+
+TB_Chest_Radiography_Database

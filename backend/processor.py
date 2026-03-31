@@ -191,4 +191,65 @@ class ImageProcessor:
             "overlay": overlay_b64
         }
 
+    def generate_shap_explanation(self, img_bytes, model):
+        """Generate SHAP heatmap overlay for an uploaded image."""
+        try:
+            import shap
+            import matplotlib.pyplot as plt
+            import matplotlib
+            matplotlib.use('Agg')
+        except ImportError:
+            raise ImportError("Please install shap and matplotlib to use explainability features.")
+
+        nparr = np.frombuffer(img_bytes, np.uint8)
+        bgr_img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if bgr_img is None:
+            raise ValueError("Invalid image file")
+            
+        rgb_original = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
+        
+        # Format for ResNet50 input (matches inference logic)
+        tf_img = tf.convert_to_tensor(rgb_original, dtype=tf.float32)
+        tf_raw_resized = tf.image.resize(tf_img, self.target_size, method='bilinear')
+        input_tensor = tf.expand_dims(tf_raw_resized, axis=0)
+        
+        # Create a background reference of zeros
+        # Using a small batch of 2 zero-tensors
+        background = np.zeros((2, self.target_size[0], self.target_size[1], 3), dtype=np.float32)
+        
+        explainer = shap.GradientExplainer(model, background)
+        
+        shap_values = explainer.shap_values(input_tensor.numpy())
+        
+        if isinstance(shap_values, list):
+            # Index 1 corresponds to TB 
+            img_shap = shap_values[1][0] 
+        else:
+            img_shap = shap_values[0]
+
+        if len(img_shap.shape) == 3:
+            img_shap = np.abs(img_shap).mean(axis=-1)
+            
+        img_shap = (img_shap - img_shap.min()) / (img_shap.max() - img_shap.min() + 1e-10)
+        
+        fig, ax = plt.subplots(figsize=(6, 6))
+        
+        display_img = rgb_original
+        if display_img.shape[:2] != self.target_size:
+            display_img = cv2.resize(display_img, self.target_size)
+        
+        ax.imshow(display_img)
+        ax.imshow(img_shap, alpha=0.5, cmap='hot')
+        ax.axis('off')
+        
+        fig.patch.set_facecolor('#0f172a')
+        
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor='#0f172a', edgecolor='none')
+        buf.seek(0)
+        img_encoded = base64.b64encode(buf.getvalue()).decode('utf-8')
+        plt.close(fig)
+        
+        return img_encoded
+
 processor = ImageProcessor()

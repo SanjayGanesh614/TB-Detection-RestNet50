@@ -1,0 +1,44 @@
+{
+  "generated_at": "2026-04-01T02:17:20.493135",
+  "model_info": {
+    "architecture": "ResNet50",
+    "input_size": 256,
+    "weights": "imagenet",
+    "framework": "TensorFlow/Keras"
+  },
+  "metrics": {
+    "accuracy": 0.9642857142857143,
+    "precision": 0.9645082061071468,
+    "recall": 0.9642857142857143,
+    "f1_score": 0.9643877551020408,
+    "specificity_normal": 0.9771754636233951,
+    "specificity_tb": 0.8992805755395683,
+    "roc_auc": 0.9944067570479992
+  },
+  "confusion_matrix": [
+    [
+      685,
+      16
+    ],
+    [
+      14,
+      125
+    ]
+  ],
+  "dataset_info": {
+    "total": 840,
+    "normal_count": 701,
+    "tb_count": 139,
+    "test_split": 0.2
+  },
+  "visualizations": {
+    "confusion_matrix": "/static/plots/confusion_matrix.png",
+    "metrics_chart": "/static/plots/metrics_chart.png",
+    "roc_curve": "/static/plots/roc_curve.png"
+  },
+  "shap_explainability": {
+    "summary_plot": null,
+    "sample_predictions": null,
+    "individual_samples": {}
+  }
+}
