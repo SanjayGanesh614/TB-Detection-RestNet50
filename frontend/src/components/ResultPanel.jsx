@@ -1,85 +1,147 @@
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import PredictionCard from './PredictionCard'
 import PreprocessingSteps from './PreprocessingSteps'
 import GradCamSection from './GradCamSection'
+import { Microscope, Activity, Eye, Image as ImageIcon } from 'lucide-react'
 
-function SectionHeader({ number, title, subtitle }) {
-  return (
-    <div className="flex items-center gap-3 mb-4">
-      <span className="w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-400 text-xs font-bold flex items-center justify-center shrink-0">
-        {number}
-      </span>
-      <div>
-        <h3 className="text-white font-semibold text-base">{title}</h3>
-        {subtitle && <p className="text-slate-500 text-xs mt-0.5">{subtitle}</p>}
-      </div>
-    </div>
-  )
-}
+const TABS = [
+  { id: 'overview', label: 'Diagnostic Overview', icon: Activity },
+  { id: 'pipeline', label: 'Processing Pipeline', icon: ImageIcon },
+  { id: 'explainability', label: 'AI Explainability', icon: Eye }
+]
 
 export default function ResultPanel({ result }) {
+  const [activeTab, setActiveTab] = useState('overview')
+
   const originalSrc = result.preprocessing_steps?.original
     ? `data:image/png;base64,${result.preprocessing_steps.original}`
     : null
 
   return (
-    <div className="space-y-8 animate-slide-up">
-      {/* Section 1: Input */}
-      <section>
-        <SectionHeader number="1" title="Input" subtitle="Uploaded chest radiograph" />
-        <div className="glass-card-solid border border-slate-700/50 overflow-hidden inline-block">
-          <div className="max-w-sm">
-            {originalSrc ? (
-              <img src={originalSrc} alt="Uploaded X-ray" className="w-full" />
-            ) : (
-              <div className="w-64 h-64 flex items-center justify-center text-slate-700">No image</div>
-            )}
-          </div>
-          <div className="px-4 py-2.5 border-t border-white/5 bg-slate-800/30">
-            <p className="text-slate-400 text-xs">Original uploaded image — unmodified baseline</p>
-          </div>
+    <div className="w-full glass-panel border border-cyan-500/20 rounded-2xl overflow-hidden shadow-2xl shadow-cyan-900/10">
+      
+      {/* Header & Navigation */}
+      <div className="bg-slate-900/80 border-b border-white/10 p-4 sm:px-8">
+        <h2 className="text-2xl font-semibold text-white mb-6 flex items-center gap-3">
+          <Microscope className="w-6 h-6 text-cyan-400" />
+          Analysis Results
+        </h2>
+        
+        <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
+          {TABS.map((tab) => {
+            const Icon = tab.icon
+            const isActive = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap
+                  ${isActive ? 'text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-cyan-400' : 'text-slate-500'}`} />
+                {tab.label}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTabIndicator"
+                    className="absolute inset-0 bg-cyan-500/10 border border-cyan-500/30 rounded-lg -z-10"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+              </button>
+            )
+          })}
         </div>
-      </section>
+      </div>
 
-      {/* Divider */}
-      <div className="border-t border-white/5" />
+      {/* Content Area */}
+      <div className="relative bg-slate-900/40 p-6 sm:p-8 min-h-[500px]">
+        <AnimatePresence mode="wait">
+          
+          {activeTab === 'overview' && (
+            <motion.div
+              key="overview"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="grid lg:grid-cols-2 gap-8 items-start"
+            >
+              {/* Input Image Card */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-slate-300 font-medium">
+                  <ImageIcon className="w-5 h-5 text-slate-400" />
+                  Source Radiograph
+                </div>
+                <div className="glass-card-solid overflow-hidden rounded-xl border-white/10 relative group">
+                  {originalSrc ? (
+                    <>
+                      <img src={originalSrc} alt="Uploaded X-ray" className="w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60" />
+                    </>
+                  ) : (
+                    <div className="w-full aspect-square flex items-center justify-center text-slate-500 bg-slate-900/80">No image available</div>
+                  )}
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                     <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Input Sequence 001</p>
+                  </div>
+                </div>
+              </div>
 
-      {/* Section 2: Preprocessing */}
-      <section>
-        <SectionHeader
-          number="2"
-          title="Preprocessing Pipeline"
-          subtitle="Each transformation shown as before & after — outputs stored at every step"
-        />
-        <PreprocessingSteps steps={result.preprocessing_steps} />
-      </section>
+              {/* Prediction Result */}
+              <div className="space-y-4">
+                 <div className="flex items-center gap-2 text-slate-300 font-medium">
+                  <Activity className="w-5 h-5 text-cyan-400" />
+                  Diagnostic Output
+                </div>
+                <PredictionCard result={result} />
+                
+                <div className="glass-card bg-cyan-900/10 border-cyan-500/20 p-5 mt-6">
+                   <h4 className="text-sm font-semibold text-cyan-300 mb-2">Automated Next Steps</h4>
+                   <p className="text-slate-400 text-sm leading-relaxed">
+                     Based on the ResNet50 classification, please review the <strong>Processing Pipeline</strong> to verify the image quality, and consult the <strong>AI Explainability (Grad-CAM)</strong> heatmap to understand which precise regions of the lung influenced this prediction.
+                   </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
-      {/* Divider */}
-      <div className="border-t border-white/5" />
+          {activeTab === 'pipeline' && (
+            <motion.div
+              key="pipeline"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold text-white">Digital Image Processing</h3>
+                <p className="text-slate-400 text-sm mt-1">High-fidelity transformations applied prior to tensor input.</p>
+              </div>
+              <PreprocessingSteps steps={result.preprocessing_steps} />
+            </motion.div>
+          )}
 
-      {/* Section 3: Prediction */}
-      <section>
-        <SectionHeader
-          number="3"
-          title="Prediction"
-          subtitle="Model classification output with confidence score"
-        />
-        <div className="max-w-md">
-          <PredictionCard result={result} />
-        </div>
-      </section>
+          {activeTab === 'explainability' && (
+            <motion.div
+              key="explainability"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold text-white">XAI: Gradient-weighted Class Activation Mapping</h3>
+                <p className="text-slate-400 text-sm mt-1">Visualizing the spatial attention map from the final convolutional layer.</p>
+              </div>
+              <GradCamSection result={result} />
+            </motion.div>
+          )}
 
-      {/* Divider */}
-      <div className="border-t border-white/5" />
-
-      {/* Section 4: Explainability */}
-      <section>
-        <SectionHeader
-          number="4"
-          title="Explainability — Grad-CAM"
-          subtitle="Visual explanation of which regions influenced the model's decision"
-        />
-        <GradCamSection result={result} />
-      </section>
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

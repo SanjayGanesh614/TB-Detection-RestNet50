@@ -4,6 +4,10 @@ import UploadSection from './components/UploadSection'
 import ResultPanel from './components/ResultPanel'
 import Footer from './components/Footer'
 
+import Hero from './components/Hero'
+import Scene3D from './components/Scene3D'
+import EducationalSection from './components/EducationalSection'
+
 const API_BASE = '/api'
 
 export default function App() {
@@ -68,33 +72,54 @@ export default function App() {
   }, [])
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="relative w-full min-h-screen flex flex-col font-sans text-slate-100 overflow-x-hidden">
+      {/* 3D Background */}
+      <Scene3D />
+
       <Header />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        <UploadSection
-          onFile={handleFile}
-          status={status}
-          preview={preview}
-          fileName={fileName}
-          onReset={handleReset}
-        />
+      {/* Parallax Hero Section */}
+      <Hero onStart={() => document.getElementById('inference-tool')?.scrollIntoView({ behavior: 'smooth' })} />
 
-        {status === 'error' && (
-          <div className="glass-card border-red-500/30 bg-red-500/5 p-5 flex items-start gap-3 animate-fade-in">
-            <svg className="w-5 h-5 text-red-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="font-semibold text-red-300 text-sm">Analysis Failed</p>
-              <p className="text-red-400/80 text-sm mt-0.5 whitespace-pre-line">{error}</p>
-            </div>
+      {/* Educational Walkthrough */}
+      <EducationalSection />
+
+      {/* Main Inference Tool */}
+      <main id="inference-tool" className="relative z-10 flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        
+        <div className="glass-panel p-6 sm:p-12 rounded-[2rem] border-cyan-500/20 shadow-[-10px_-10px_30px_rgba(255,255,255,0.02),10px_10px_30px_rgba(0,0,0,0.5)]">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-white">AI Diagnostic Interface</h2>
+            <p className="text-slate-400 text-lg font-light">Upload a posterior-anterior (PA) chest radiograph to initiate the automated screening protocol and Grad-CAM analysis.</p>
           </div>
-        )}
 
-        {status === 'done' && result && (
-          <ResultPanel result={result} />
-        )}
+          <UploadSection
+            onFile={handleFile}
+            status={status}
+            preview={preview}
+            fileName={fileName}
+            onReset={handleReset}
+          />
+
+          {status === 'error' && (
+            <div className="mt-8 glass-card border-rose-500/30 bg-rose-500/5 p-5 flex items-start gap-4 animate-slide-up">
+              <svg className="w-6 h-6 text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <p className="font-semibold text-rose-300">Diagnostic Pipeline Error</p>
+                <p className="text-rose-400/80 mt-1 whitespace-pre-line leading-relaxed">{error}</p>
+              </div>
+            </div>
+          )}
+
+          {status === 'done' && result && (
+            <div className="mt-16 border-t border-white/5 pt-16">
+              <ResultPanel result={result} />
+            </div>
+          )}
+        </div>
+
       </main>
 
       <Footer />

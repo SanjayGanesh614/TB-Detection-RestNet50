@@ -42,32 +42,71 @@ class ImageProcessor:
         return cv2.GaussianBlur(img, (3, 3), 0)
 
     def make_gradcam_heatmap(self, img_array, model, last_conv_layer_name):
-        """Generate Grad-CAM heatmap using the model architecture."""
-        resnet_base = model.layers[0]
+        """Generate Grad-CAM heatmap using manual layer-by-layer tracing (Robust for Keras 3 Sequential)."""
         
+        # Ensure we have the base model (ResNet50) if wrapped in Sequential
+        main_model = model
+        if hasattr(model, 'layers') and len(model.layers) > 0:
+            if hasattr(model.layers[0], 'layers'):
+                main_model = model.layers[0]
+
+        # 1. Target identify the target conv layer object
+        target_layer = None
         try:
-            last_conv_layer = resnet_base.get_layer(last_conv_layer_name)
-        except ValueError:
-            last_conv_layer = resnet_base.get_layer("conv5_block3_out")
+            target_layer = main_model.get_layer(last_conv_layer_name)
+        except (ValueError, AttributeError):
+            for layer in reversed(main_model.layers):
+                if 'conv' in layer.name.lower() and hasattr(layer, 'output_shape') and len(layer.output_shape) == 4:
+                    target_layer = layer
+                    break
+        
+        if not target_layer:
+            raise ValueError("Could not find suitable convolution layer for Grad-CAM.")
 
-        # Create a model that maps the input to the activations of the last conv layer
-        # AND the final output of the WHOLE model
-        grad_model = keras.Model(
-            model.inputs, [last_conv_layer.output, model.output]
-        )
-
+        # 2. TRACING: Manually run the model through the tape to define the relationship
         with tf.GradientTape() as tape:
-            last_conv_layer_output, preds = grad_model(img_array)
-            top_pred_index = tf.argmax(preds[0])
-            top_class_channel = preds[:, top_pred_index]
+            # Start from the input
+            x = img_array
+            conv_activations = None
+            
+            # Since the model is Sequential (Base + Head), we trace through it
+            # Case 1: Sequential model with base model as layer 0
+            if id(model) == id(main_model):
+                # If they are the same (already flat), trace all
+                for layer in model.layers:
+                    x = layer(x)
+                    if layer == target_layer:
+                        conv_activations = x
+                        tape.watch(conv_activations)
+            else:
+                # Trace base first
+                for layer in main_model.layers:
+                    x = layer(x)
+                    if layer == target_layer:
+                        conv_activations = x
+                        tape.watch(conv_activations)
+                
+                # Trace the rest of the top-level layers (pooling, dense, etc) in the sequential model
+                for i in range(1, len(model.layers)):
+                    x = model.layers[i](x)
+            
+            # Final output is now x
+            if conv_activations is None:
+                raise ValueError("Missed the target layer during tracing.")
+                
+            top_pred_index = tf.argmax(x[0])
+            top_class_channel = x[:, top_pred_index]
 
-        grads = tape.gradient(top_class_channel, last_conv_layer_output)
+        # 3. Calculate gradients w.r.t the intermediate activations we captured
+        grads = tape.gradient(top_class_channel, conv_activations)
+        
+        # 4. Standard Grad-CAM synthesis
         pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
-
-        last_conv_layer_output = last_conv_layer_output[0]
-        heatmap = last_conv_layer_output @ pooled_grads[..., tf.newaxis]
+        conv_output = conv_activations[0]
+        heatmap = conv_output @ pooled_grads[..., tf.newaxis]
         heatmap = tf.squeeze(heatmap).numpy()
 
+        # ReLU and normalize
         heatmap = np.maximum(heatmap, 0) / (np.max(heatmap) + 1e-10)
         return heatmap
 
@@ -109,7 +148,7 @@ class ImageProcessor:
         tf_raw_resized = tf.image.resize(tf_img, self.target_size, method='bilinear')
         input_tensor = tf.expand_dims(tf_raw_resized, axis=0)
 
-        # --- PATH 2: VISUAL ENHANCEMENT (FRONTEND DISPLAY) ---
+        # --- PATH 2: VISUAL ENHANCEMENT (FRONTEND DISPLAY) ---till
         resized_visual = cv2.resize(bgr_img, self.target_size)
         enhanced_visual = self.enhance(resized_visual)
         denoised_visual = self.denoise(enhanced_visual)
