@@ -142,7 +142,10 @@ class ImageProcessor:
             "class_index": int(class_idx),
             "preprocessing_steps": {
                 "original": self.to_base64(rgb_original),
-                "enhanced": self.to_base64(visual_output_rgb),
+                "resized": self.to_base64(cv2.cvtColor(resized_visual, cv2.COLOR_BGR2RGB)),
+                "enhanced": self.to_base64(cv2.cvtColor(enhanced_visual, cv2.COLOR_BGR2RGB)),
+                "denoised": self.to_base64(visual_output_rgb),
+                "normalized": self.to_base64(tf_raw_resized.numpy()),
                 "model_input": self.to_base64(tf_raw_resized.numpy())
             },
             "grad_cam": grad_cam_b64,
