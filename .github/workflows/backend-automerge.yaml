@@ -1,0 +1,26 @@
+name: automerge
+on:
+  pull_request:
+    types: [labeled, synchronize, opened, reopened, ready_for_review]
+    paths:
+      - 'backend/**' # Only merge if the backend was the part being updated
+  pull_request_review:
+    types: [submitted]
+  check_suite:
+    types: [completed]
+
+jobs:
+  automerge:
+    # Ensures it doesn't merge drafts and waits for the verification job
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - id: automerge
+        uses: "pascalgn/automerge-action@v0.16.4"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          MERGE_LABELS: "automerge" # Add the 'automerge' label to your PR to trigger this
+          MERGE_METHOD: "squash"

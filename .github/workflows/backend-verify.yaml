@@ -1,0 +1,51 @@
+name: Backend Verification
+on:
+  push:
+    branches:
+      - '**'        # Triggers on every push to any branch
+    paths:
+      - 'backend/**'
+  pull_request:
+    paths:
+      - 'backend/**' # Only triggers if files in the backend folder change
+
+jobs:
+  test-and-scan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend # Runs all commands inside the backend folder
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install ruff pytest pytest-cov snyk
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Lint with Ruff
+        run: ruff check . --fix
+
+      - name: Snyk Security Scan
+        run: snyk test --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Jules AI Test Generation
+        # Jules analyzes your backend code and suggests/writes edge case tests
+        uses: google-labs-code/jules-invoke@v1
+        with:
+          prompt: |
+            Look at the Python code in the 'backend' folder of this PR. 
+            Identify critical edge cases (empty inputs, long strings, injection).
+            Write Pytest cases for these and save them to backend/tests/test_generated.py.
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+
+      - name: Run Logic & Edge Case Tests
+        run: pytest tests/ --cov=.
