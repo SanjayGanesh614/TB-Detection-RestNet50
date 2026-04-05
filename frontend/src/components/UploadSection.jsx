@@ -1,4 +1,6 @@
 import { useRef, useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Upload, RotateCcw, Image as ImageIcon, Zap, Eye, FileCheck } from 'lucide-react'
 
 export default function UploadSection({ onFile, status, preview, fileName, onReset }) {
   const inputRef = useRef(null)
@@ -11,13 +13,8 @@ export default function UploadSection({ onFile, status, preview, fileName, onRes
     if (file && file.type.startsWith('image/')) onFile(file)
   }, [onFile])
 
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault()
-    setDragging(true)
-  }, [])
-
+  const handleDragOver = useCallback((e) => { e.preventDefault(); setDragging(true) }, [])
   const handleDragLeave = useCallback(() => setDragging(false), [])
-
   const handleChange = useCallback((e) => {
     const file = e.target.files[0]
     if (file) onFile(file)
@@ -27,41 +24,54 @@ export default function UploadSection({ onFile, status, preview, fileName, onRes
   const isLoading = status === 'loading'
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+    <section className="space-y-6">
+      {/* Header row */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">
+          <h2 className="text-2xl font-bold text-white tracking-tight leading-none mb-1.5">
             Chest X-Ray Analysis
           </h2>
-          <p className="text-slate-400 text-sm mt-1">
-            Upload a chest radiograph to detect signs of Tuberculosis using ResNet50 deep learning
+          <p className="text-slate-400 text-sm">
+            Upload a radiograph to detect Tuberculosis using ResNet50 deep learning
           </p>
         </div>
-        {status === 'done' && (
-          <button
-            onClick={onReset}
-            className="sm:ml-auto flex items-center gap-2 text-sm text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-xl transition-all duration-200"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Analyze Another
-          </button>
-        )}
+        <AnimatePresence>
+          {status === 'done' && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              whileHover={{ scale: 1.05, y: -1 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={onReset}
+              className="sm:ml-auto flex items-center gap-2 text-sm font-semibold px-5 py-2.5 liquid-glass rounded-xl text-slate-300 hover:text-white border border-white/10 hover:border-white/20 transition-all"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Analyze Another
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Upload Zone */}
-        <div
+        <motion.div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onClick={() => !isLoading && !preview && inputRef.current?.click()}
+          animate={{
+            borderColor: dragging ? 'rgba(34,211,238,0.6)' : 'rgba(51,65,85,0.7)',
+            boxShadow: dragging
+              ? '0 0 40px rgba(34,211,238,0.15), inset 0 0 30px rgba(34,211,238,0.05)'
+              : '0 4px 20px rgba(0,0,0,0.3)',
+          }}
+          transition={{ duration: 0.2 }}
           className={`
-            relative glass-card-solid border-2 border-dashed transition-all duration-200 overflow-hidden
-            min-h-[280px] flex items-center justify-center
-            ${dragging ? 'border-blue-400 bg-blue-500/10 scale-[1.01]' : 'border-slate-700 hover:border-slate-500'}
+            relative border-2 border-dashed rounded-3xl overflow-hidden
+            min-h-[320px] flex items-center justify-center
             ${!preview && !isLoading ? 'cursor-pointer' : ''}
+            bg-slate-900/50 backdrop-blur-lg
           `}
         >
           <input
@@ -73,77 +83,114 @@ export default function UploadSection({ onFile, status, preview, fileName, onRes
             disabled={isLoading}
           />
 
-          {isLoading ? (
-            <LoadingState />
-          ) : preview ? (
-            <PreviewState preview={preview} fileName={fileName} onReset={onReset} />
-          ) : (
-            <EmptyState dragging={dragging} />
+          {/* Animated corner accents */}
+          {!preview && !isLoading && (
+            <>
+              {[['top-3 left-3 border-t border-l', 'w-6 h-6'],
+                ['top-3 right-3 border-t border-r', 'w-6 h-6'],
+                ['bottom-3 left-3 border-b border-l', 'w-6 h-6'],
+                ['bottom-3 right-3 border-b border-r', 'w-6 h-6']].map(([pos], i) => (
+                <div
+                  key={i}
+                  className={`absolute ${pos} border-cyan-500/40 w-6 h-6 rounded-sm transition-all duration-300 ${
+                    dragging ? 'border-cyan-400 scale-110' : ''
+                  }`}
+                />
+              ))}
+            </>
           )}
-        </div>
+
+          <AnimatePresence mode="wait">
+            {isLoading ? (
+              <LoadingState key="loading" />
+            ) : preview ? (
+              <PreviewState key="preview" preview={preview} fileName={fileName} onReset={onReset} />
+            ) : (
+              <EmptyState key="empty" dragging={dragging} />
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Instructions Card */}
-        <div className="glass-card-solid p-6 space-y-5">
-          <h3 className="font-semibold text-white text-sm uppercase tracking-wider text-slate-400">
-            How It Works
-          </h3>
-          <ol className="space-y-4">
+        <div className="liquid-glass rounded-3xl border border-white/8 p-7 space-y-6">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+              <Zap className="w-3.5 h-3.5 text-cyan-400" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">
+              How It Works
+            </h3>
+          </div>
+
+          <ol className="space-y-5">
             {[
               {
                 step: '01',
+                icon: ImageIcon,
                 title: 'Upload X-Ray',
                 desc: 'Drag & drop or click to upload a chest radiograph (PNG, JPG, JPEG)',
-                icon: (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                ),
+                color: 'cyan',
               },
               {
                 step: '02',
+                icon: Zap,
                 title: 'AI Processing',
                 desc: 'Image undergoes CLAHE enhancement, denoising, and ResNet50 inference',
-                icon: (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                ),
+                color: 'blue',
               },
               {
                 step: '03',
+                icon: Eye,
                 title: 'Grad-CAM Visualization',
-                desc: 'See exactly which regions influenced the AI\'s decision via heatmaps',
-                icon: (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                ),
+                desc: "See exactly which regions influenced the AI's decision via heatmaps",
+                color: 'violet',
               },
               {
                 step: '04',
+                icon: FileCheck,
                 title: 'Clinical Report',
                 desc: 'Get prediction (Normal / Tuberculosis) with confidence score',
-                icon: (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                ),
+                color: 'emerald',
               },
-            ].map(({ step, title, desc, icon }) => (
-              <li key={step} className="flex gap-3">
-                <div className="shrink-0 w-8 h-8 bg-blue-600/20 border border-blue-500/30 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    {icon}
-                  </svg>
+            ].map(({ step, icon: Icon, title, desc, color }, i) => (
+              <motion.li
+                key={step}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="flex gap-4 group"
+              >
+                <div className="relative shrink-0">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 ${
+                    color === 'cyan' ? 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-400' :
+                    color === 'blue' ? 'bg-blue-500/15 border border-blue-500/30 text-blue-400' :
+                    color === 'violet' ? 'bg-violet-500/15 border border-violet-500/30 text-violet-400' :
+                    'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                  }`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  {i < 3 && (
+                    <div className="absolute left-1/2 top-full w-px h-5 bg-gradient-to-b from-slate-700 to-transparent -translate-x-1/2" />
+                  )}
                 </div>
-                <div>
-                  <p className="text-white text-sm font-medium">{title}</p>
-                  <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">{desc}</p>
+                <div className="pt-1.5">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs text-slate-600 font-mono">{step}</span>
+                    <p className="text-white text-sm font-semibold">{title}</p>
+                  </div>
+                  <p className="text-slate-500 text-xs leading-relaxed">{desc}</p>
                 </div>
-              </li>
+              </motion.li>
             ))}
           </ol>
 
-          <div className="pt-2 border-t border-slate-700/50">
-            <p className="text-xs text-slate-500 leading-relaxed">
-              <span className="text-amber-400 font-medium">Disclaimer:</span> This tool is for research and educational purposes only. Not a substitute for professional medical diagnosis.
-            </p>
+          <div className="border-t border-white/5 pt-5">
+            <div className="liquid-glass rounded-xl p-4 border border-amber-500/15">
+              <p className="text-xs text-slate-400 leading-relaxed">
+                <span className="text-amber-400 font-bold">Disclaimer:</span>{' '}
+                This tool is for research and educational purposes only. Not a substitute for professional medical diagnosis.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -153,67 +200,163 @@ export default function UploadSection({ onFile, status, preview, fileName, onRes
 
 function EmptyState({ dragging }) {
   return (
-    <div className={`text-center p-8 space-y-4 transition-all duration-200 ${dragging ? 'scale-95' : ''}`}>
-      <div className="w-16 h-16 mx-auto bg-slate-800 border-2 border-dashed border-slate-600 rounded-2xl flex items-center justify-center">
-        <svg className="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-        </svg>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      className="text-center p-10 space-y-5 w-full"
+    >
+      {/* Icon with ripple rings */}
+      <div className="relative w-20 h-20 mx-auto">
+        {dragging && (
+          <>
+            <div className="absolute inset-0 rounded-full border border-cyan-500/40 scale-150 animate-ping" />
+            <div className="absolute inset-0 rounded-full border border-cyan-500/20 scale-175" style={{ animation: 'pulse-ring 1.5s ease-out infinite 0.3s' }} />
+          </>
+        )}
+        <motion.div
+          animate={dragging ? { scale: 1.15, rotate: -5 } : { scale: 1, rotate: 0 }}
+          transition={{ type: 'spring', stiffness: 300 }}
+          className={`w-20 h-20 rounded-3xl flex items-center justify-center transition-all ${
+            dragging
+              ? 'bg-cyan-500/20 border-2 border-cyan-400/60 shadow-[0_0_30px_rgba(34,211,238,0.3)]'
+              : 'bg-slate-800/80 border-2 border-dashed border-slate-600'
+          }`}
+        >
+          <Upload className={`w-9 h-9 transition-colors ${dragging ? 'text-cyan-400' : 'text-slate-500'}`} />
+        </motion.div>
       </div>
+
       <div>
-        <p className="text-white font-semibold">Drop your X-ray here</p>
-        <p className="text-slate-500 text-sm mt-1">or <span className="text-blue-400">click to browse</span></p>
+        <p className={`text-lg font-bold transition-colors ${dragging ? 'text-cyan-300' : 'text-white'}`}>
+          {dragging ? 'Release to Upload' : 'Drop your X-ray here'}
+        </p>
+        <p className="text-slate-500 text-sm mt-1">
+          or{' '}
+          <span className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium underline underline-offset-2 cursor-pointer">
+            click to browse files
+          </span>
+        </p>
       </div>
-      <p className="text-slate-600 text-xs">PNG, JPG, JPEG — any size</p>
-    </div>
+
+      <div className="flex items-center justify-center gap-3">
+        {['PNG', 'JPG', 'JPEG'].map((fmt) => (
+          <span key={fmt} className="text-xs text-slate-600 bg-slate-800/60 border border-slate-700/50 px-2.5 py-1 rounded-lg font-mono">
+            {fmt}
+          </span>
+        ))}
+      </div>
+    </motion.div>
   )
 }
 
 function PreviewState({ preview, fileName, onReset }) {
   return (
-    <div className="relative w-full h-full min-h-[280px]">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="relative w-full h-full min-h-[320px]"
+    >
+      {/* Scanner effect overlay */}
+      <div className="scanner-effect absolute inset-0 z-10 pointer-events-none" />
       <img
         src={preview}
         alt="X-ray preview"
         className="absolute inset-0 w-full h-full object-contain p-4"
       />
-      <div className="absolute bottom-3 left-3 right-3 bg-slate-900/80 backdrop-blur-sm rounded-xl px-3 py-2 flex items-center gap-2">
-        <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        <span className="text-slate-300 text-xs font-medium truncate">{fileName}</span>
+      {/* Corner markers */}
+      <div className="absolute inset-4 pointer-events-none">
+        {[['top-0 left-0 border-t-2 border-l-2', ''],
+          ['top-0 right-0 border-t-2 border-r-2', ''],
+          ['bottom-0 left-0 border-b-2 border-l-2', ''],
+          ['bottom-0 right-0 border-b-2 border-r-2', '']].map(([pos], i) => (
+          <div key={i} className={`absolute ${pos} border-cyan-500/60 w-5 h-5 rounded-sm`} />
+        ))}
       </div>
-    </div>
+      <div className="absolute bottom-3 left-3 right-3 liquid-glass rounded-xl px-4 py-2.5 flex items-center gap-2 z-20">
+        <ImageIcon className="w-4 h-4 text-cyan-400 shrink-0" />
+        <span className="text-slate-200 text-xs font-medium truncate">{fileName}</span>
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={(e) => { e.stopPropagation(); onReset() }}
+          className="ml-auto text-slate-500 hover:text-rose-400 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </motion.button>
+      </div>
+    </motion.div>
   )
 }
 
 function LoadingState() {
-  const steps = ['Reading image...', 'Applying CLAHE...', 'Running ResNet50...', 'Generating Grad-CAM...']
+  const steps = [
+    { label: 'Reading image...', color: '#22d3ee' },
+    { label: 'Applying CLAHE enhancement...', color: '#3b82f6' },
+    { label: 'Running ResNet50 inference...', color: '#8b5cf6' },
+    { label: 'Generating Grad-CAM heatmap...', color: '#34d399' },
+  ]
+
   return (
-    <div className="text-center p-8 space-y-5">
-      <div className="relative w-14 h-14 mx-auto">
-        <div className="absolute inset-0 border-2 border-blue-500/20 rounded-full" />
-        <div className="absolute inset-0 border-2 border-transparent border-t-blue-500 rounded-full animate-spin" />
-        <div className="absolute inset-2 border-2 border-transparent border-t-cyan-400 rounded-full animate-spin-slow" />
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      className="text-center p-10 space-y-7 w-full"
+    >
+      {/* Multi-ring spinner */}
+      <div className="relative w-20 h-20 mx-auto">
+        <div className="absolute inset-0 rounded-full border-2 border-slate-700/50" />
+        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-cyan-500 animate-spin" style={{ animationDuration: '1s' }} />
+        <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" style={{ animationDuration: '1.5s', animationDirection: 'reverse' }} />
+        <div className="absolute inset-4 rounded-full border-2 border-transparent border-t-violet-400 animate-spin" style={{ animationDuration: '2s' }} />
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+          <motion.div
+            animate={{ scale: [0.8, 1.2, 0.8] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="w-3 h-3 rounded-full bg-cyan-400"
+            style={{ boxShadow: '0 0 10px rgba(34,211,238,0.8)' }}
+          />
         </div>
       </div>
-      <div className="space-y-2">
-        <p className="text-white font-semibold text-sm">Analyzing radiograph...</p>
-        <div className="space-y-1.5">
-          {steps.map((step, i) => (
-            <div key={step} className="flex items-center gap-2 justify-center">
-              <div
-                className="w-1.5 h-1.5 rounded-full bg-blue-400"
-                style={{ animation: `pulse 1.5s ease-in-out ${i * 0.3}s infinite` }}
+
+      <div>
+        <p className="text-white font-bold text-base mb-1">Analyzing radiograph</p>
+        <p className="text-slate-500 text-xs">AI pipeline active</p>
+      </div>
+
+      {/* Step indicators */}
+      <div className="space-y-3 w-full max-w-xs mx-auto">
+        {steps.map((step, i) => (
+          <motion.div
+            key={step.label}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.3 }}
+            className="flex items-center gap-3"
+          >
+            <motion.div
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: step.color }}
+              animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, delay: i * 0.3, repeat: Infinity }}
+            />
+            <div className="flex-1 bg-slate-800/60 rounded-full h-1 overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: `linear-gradient(90deg, ${step.color}80, ${step.color})` }}
+                initial={{ width: '0%' }}
+                animate={{ width: ['0%', '100%', '0%'] }}
+                transition={{ duration: 2.5, delay: i * 0.4, repeat: Infinity, ease: 'easeInOut' }}
               />
-              <span className="text-slate-500 text-xs">{step}</span>
             </div>
-          ))}
-        </div>
+            <span className="text-slate-500 text-xs shrink-0 w-28 text-left">{step.label}</span>
+          </motion.div>
+        ))}
       </div>
-    </div>
+    </motion.div>
   )
 }

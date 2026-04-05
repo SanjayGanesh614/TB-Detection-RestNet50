@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowRight, ZoomIn, X } from 'lucide-react'
 
 const PIPELINE = [
   {
@@ -11,6 +13,8 @@ const PIPELINE = [
     beforeLabel: 'Original',
     afterLabel: 'Resized (256×256)',
     color: 'violet',
+    accentFrom: '#a78bfa',
+    accentTo: '#8b5cf6',
   },
   {
     step: '6.4',
@@ -22,6 +26,8 @@ const PIPELINE = [
     beforeLabel: 'Resized',
     afterLabel: 'CLAHE Enhanced',
     color: 'cyan',
+    accentFrom: '#22d3ee',
+    accentTo: '#06b6d4',
   },
   {
     step: '6.5',
@@ -33,6 +39,8 @@ const PIPELINE = [
     beforeLabel: 'Enhanced',
     afterLabel: 'Denoised',
     color: 'teal',
+    accentFrom: '#2dd4bf',
+    accentTo: '#14b8a6',
     optional: true,
   },
   {
@@ -45,189 +53,210 @@ const PIPELINE = [
     beforeLabel: 'Denoised',
     afterLabel: 'Normalized [0, 1]',
     color: 'emerald',
+    accentFrom: '#34d399',
+    accentTo: '#10b981',
   },
 ]
-
-const COLOR_MAP = {
-  violet:  { border: 'border-violet-500/30',  bg: 'bg-violet-500/10',  text: 'text-violet-300',  accent: 'bg-violet-500' },
-  cyan:    { border: 'border-cyan-500/30',    bg: 'bg-cyan-500/10',    text: 'text-cyan-300',    accent: 'bg-cyan-500' },
-  teal:    { border: 'border-teal-500/30',    bg: 'bg-teal-500/10',    text: 'text-teal-300',    accent: 'bg-teal-500' },
-  emerald: { border: 'border-emerald-500/30', bg: 'bg-emerald-500/10', text: 'text-emerald-300', accent: 'bg-emerald-500' },
-}
 
 export default function PreprocessingSteps({ steps }) {
   const [enlarged, setEnlarged] = useState(null)
 
   return (
-    <div className="space-y-5">
-      {/* Pipeline flow indicator */}
-      <div className="flex items-center gap-2 flex-wrap text-xs">
-        {['Original', 'Resize', 'CLAHE', 'Denoise', 'Normalize', 'Model Input'].map((name, i, arr) => (
-          <span key={name} className="flex items-center gap-2">
-            <span className={`px-2.5 py-1 rounded-md font-medium ${
-              i === 0 || i === arr.length - 1
-                ? 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
-                : 'bg-slate-800 text-slate-400 border border-slate-700'
-            }`}>
-              {name}
+    <div className="space-y-6">
+      {/* Pipeline flow */}
+      <div className="liquid-glass rounded-2xl border border-white/8 p-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          {['Original', 'Resize', 'CLAHE', 'Denoise', 'Normalize', 'Model Input'].map((name, i, arr) => (
+            <span key={name} className="flex items-center gap-2">
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.07 }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                  i === 0 || i === arr.length - 1
+                    ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
+                    : 'bg-slate-800/80 text-slate-400 border border-slate-700/60'
+                }`}
+              >
+                {name}
+              </motion.span>
+              {i < arr.length - 1 && (
+                <ArrowRight className="w-3 h-3 text-slate-700 shrink-0" />
+              )}
             </span>
-            {i < arr.length - 1 && (
-              <svg className="w-3.5 h-3.5 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            )}
-          </span>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Before/After cards */}
+      {/* Step cards */}
       <div className="grid md:grid-cols-2 gap-5">
         {PIPELINE.map((step, idx) => {
-          const c = COLOR_MAP[step.color]
           const beforeSrc = steps[step.before] ? `data:image/png;base64,${steps[step.before]}` : null
           const afterSrc = steps[step.after] ? `data:image/png;base64,${steps[step.after]}` : null
 
           return (
-            <div key={idx} className={`glass-card-solid border ${c.border} overflow-hidden`}>
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1, duration: 0.5 }}
+              className="liquid-glass rounded-2xl overflow-hidden"
+              style={{ border: `1px solid ${step.accentFrom}25` }}
+            >
               {/* Step header */}
-              <div className={`${c.bg} px-4 py-3 flex items-center gap-3`}>
-                <span className={`w-6 h-6 rounded-md ${c.accent} text-white text-xs font-bold flex items-center justify-center shrink-0`}>
+              <div className="px-5 py-4 flex items-center gap-3"
+                style={{ background: `${step.accentFrom}10`, borderBottom: `1px solid ${step.accentFrom}20` }}>
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-black shrink-0 shadow-lg"
+                  style={{ background: `linear-gradient(135deg, ${step.accentFrom}, ${step.accentTo})` }}
+                >
                   {idx + 1}
-                </span>
+                </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className={`text-sm font-semibold ${c.text}`}>{step.label}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-bold" style={{ color: step.accentFrom }}>{step.label}</p>
                     {step.optional && (
-                      <span className="text-xs text-slate-500 bg-slate-800/60 border border-slate-700 px-1.5 py-0.5 rounded">
-                        optional
-                      </span>
+                      <span className="text-xs text-slate-500 bg-slate-800/60 border border-slate-700 px-2 py-0.5 rounded-lg">optional</span>
                     )}
                   </div>
-                  <p className="text-slate-500 text-xs leading-tight mt-0.5">{step.purpose}</p>
+                  <p className="text-slate-500 text-xs mt-0.5">{step.purpose}</p>
                 </div>
                 <span className="text-slate-600 text-xs font-mono shrink-0">Step {step.step}</span>
               </div>
 
-              {/* Before / After images */}
-              <div className="p-4">
-                <div className="flex items-stretch gap-3">
+              {/* Images */}
+              <div className="p-5">
+                <div className="flex items-stretch gap-4">
                   {/* Before */}
-                  <div
-                    className="flex-1 cursor-pointer group"
+                  <ImagePanel
+                    src={beforeSrc}
+                    label="Before"
+                    caption={step.beforeLabel}
+                    accentColor={step.accentFrom}
+                    dimmed
                     onClick={() => beforeSrc && setEnlarged({ src: beforeSrc, label: step.beforeLabel, step: step.label })}
-                  >
-                    <div className="text-xs text-slate-500 font-medium mb-1.5 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
-                      Before
-                    </div>
-                    <div className="aspect-square bg-black/40 rounded-xl overflow-hidden relative">
-                      {beforeSrc ? (
-                        <>
-                          <img src={beforeSrc} alt={step.beforeLabel} className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                            <svg className="w-5 h-5 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                            </svg>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-700 text-xs">N/A</div>
-                      )}
-                    </div>
-                    <p className="text-slate-600 text-xs mt-1.5 text-center">{step.beforeLabel}</p>
-                  </div>
+                  />
 
                   {/* Arrow */}
-                  <div className="flex flex-col items-center justify-center pt-5 shrink-0">
-                    <div className={`w-0.5 flex-1 ${c.accent} opacity-20 rounded-full`} />
-                    <div className={`my-2 w-8 h-8 rounded-full ${c.bg} border ${c.border} flex items-center justify-center shrink-0`}>
-                      <svg className={`w-4 h-4 ${c.text}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                      </svg>
-                    </div>
-                    <div className={`w-0.5 flex-1 ${c.accent} opacity-20 rounded-full`} />
+                  <div className="flex flex-col items-center justify-center gap-2 shrink-0">
+                    <div className="w-px flex-1 rounded-full" style={{ background: `${step.accentFrom}30` }} />
+                    <motion.div
+                      className="w-8 h-8 rounded-full flex items-center justify-center"
+                      style={{ background: `${step.accentFrom}15`, border: `1px solid ${step.accentFrom}30` }}
+                      whileHover={{ scale: 1.2 }}
+                    >
+                      <ArrowRight className="w-4 h-4" style={{ color: step.accentFrom }} />
+                    </motion.div>
+                    <div className="w-px flex-1 rounded-full" style={{ background: `${step.accentFrom}30` }} />
                   </div>
 
                   {/* After */}
-                  <div
-                    className="flex-1 cursor-pointer group"
+                  <ImagePanel
+                    src={afterSrc}
+                    label="After"
+                    caption={step.afterLabel}
+                    accentColor={step.accentFrom}
+                    highlighted
                     onClick={() => afterSrc && setEnlarged({ src: afterSrc, label: step.afterLabel, step: step.label })}
-                  >
-                    <div className={`text-xs font-medium mb-1.5 flex items-center gap-1.5 ${c.text}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${c.accent}`} />
-                      After
-                    </div>
-                    <div className={`aspect-square bg-black/40 rounded-xl overflow-hidden relative ring-1 ring-inset ${c.border}`}>
-                      {afterSrc ? (
-                        <>
-                          <img src={afterSrc} alt={step.afterLabel} className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                            <svg className="w-5 h-5 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                            </svg>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-700 text-xs">N/A</div>
-                      )}
-                    </div>
-                    <p className={`text-xs mt-1.5 text-center ${c.text}`}>{step.afterLabel}</p>
-                  </div>
+                  />
                 </div>
 
-                {/* Description */}
-                <p className="text-slate-600 text-xs mt-3 leading-relaxed border-t border-white/5 pt-3">
+                <p className="text-slate-500 text-xs mt-4 leading-relaxed border-t pt-3" style={{ borderColor: `${step.accentFrom}15` }}>
                   {step.desc}
                 </p>
               </div>
-            </div>
+            </motion.div>
           )
         })}
       </div>
 
-      {/* Lightbox modal */}
-      {enlarged && (
-        <LightboxModal
-          src={enlarged.src}
-          label={enlarged.label}
-          step={enlarged.step}
-          onClose={() => setEnlarged(null)}
-        />
-      )}
+      {/* Lightbox */}
+      <AnimatePresence>
+        {enlarged && (
+          <LightboxModal
+            src={enlarged.src}
+            label={enlarged.label}
+            step={enlarged.step}
+            onClose={() => setEnlarged(null)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function ImagePanel({ src, label, caption, accentColor, dimmed, highlighted, onClick }) {
+  return (
+    <div className="flex-1 cursor-pointer group" onClick={onClick}>
+      <div className={`text-xs font-semibold mb-2 flex items-center gap-1.5 ${dimmed ? 'text-slate-500' : ''}`}
+        style={highlighted ? { color: accentColor } : {}}>
+        <span className="w-2 h-2 rounded-full" style={{ background: highlighted ? accentColor : '#475569' }} />
+        {label}
+      </div>
+      <motion.div
+        whileHover={{ scale: 1.03 }}
+        transition={{ duration: 0.2 }}
+        className="aspect-square bg-black/50 rounded-xl overflow-hidden relative"
+        style={highlighted ? { boxShadow: `0 0 15px ${accentColor}30`, border: `1px solid ${accentColor}30` } : { border: '1px solid rgba(51,65,85,0.4)' }}
+      >
+        {src ? (
+          <>
+            <img src={src} alt={caption} className="w-full h-full object-cover" />
+            <motion.div
+              className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              whileHover={{ opacity: 1 }}
+            >
+              <div className="bg-black/50 backdrop-blur-sm rounded-xl p-2">
+                <ZoomIn className="w-5 h-5 text-white" />
+              </div>
+            </motion.div>
+          </>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-700 text-xs">N/A</div>
+        )}
+      </motion.div>
+      <p className="text-xs mt-1.5 text-center text-slate-600">{caption}</p>
     </div>
   )
 }
 
 function LightboxModal({ src, label, step, onClose }) {
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
       onClick={onClose}
     >
-      <div
-        className="glass-card-solid max-w-2xl w-full overflow-hidden"
+      <motion.div
+        initial={{ scale: 0.8, y: 30 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.8, y: 30 }}
+        transition={{ type: 'spring', bounce: 0.3 }}
+        className="liquid-glass max-w-2xl w-full overflow-hidden rounded-3xl"
         onClick={(e) => e.stopPropagation()}
+        style={{ boxShadow: '0 20px 80px rgba(0,0,0,0.8)' }}
       >
-        <div className="flex items-center justify-between p-4 border-b border-white/5">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
           <div>
-            <h4 className="text-white font-semibold">{label}</h4>
-            <p className="text-slate-500 text-xs">{step}</p>
+            <h4 className="text-white font-bold">{label}</h4>
+            <p className="text-slate-500 text-xs mt-0.5">{step}</p>
           </div>
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileTap={{ scale: 0.9 }}
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors"
+            className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center transition-all text-slate-400"
           >
-            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+            <X className="w-4 h-4" />
+          </motion.button>
         </div>
-        <div className="p-4 bg-black/30">
-          <img src={src} alt={label} className="w-full rounded-lg" />
+        <div className="p-6 bg-black/40">
+          <img src={src} alt={label} className="w-full rounded-2xl shadow-2xl" />
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
