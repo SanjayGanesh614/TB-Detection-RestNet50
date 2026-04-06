@@ -21,6 +21,6 @@ jobs:
       - id: automerge
         uses: "pascalgn/automerge-action@v0.16.4"
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.SGITHUB_TOKEN }}"
           MERGE_LABELS: "automerge" # Add the 'automerge' label to your PR to trigger this
           MERGE_METHOD: "squash"
