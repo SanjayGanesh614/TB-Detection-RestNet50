@@ -11,6 +11,8 @@ on:
 
 jobs:
   test-and-scan:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     defaults:
       run:
