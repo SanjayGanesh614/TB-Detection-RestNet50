@@ -33,9 +33,9 @@ jobs:
         run: ruff check . --fix
 
       - name: Snyk Security Scan
-        run: snyk test --severity-threshold=high
+        uses: snyk/actions/python@master
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
 
       - name: Run Logic & Edge Case Tests
