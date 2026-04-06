@@ -12,6 +12,8 @@ on:
 jobs:
   test-and-scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: ./frontend # All commands run inside the frontend folder
